@@ -1,0 +1,549 @@
+experiment:
+  output_dir: results
+  replications: 5
+  seeds:
+  - 11001
+  - 22002
+  - 33003
+  - 44004
+  - 55005
+  warmup_minutes: 1440
+  run_minutes: 10080
+model:
+  blocking: false
+  target_utilisation: 0.85
+  nodes:
+  - registration
+  - triage
+  - fast_track
+  - consultation
+  - lab
+  - imaging
+  - treatment
+  fcfs_nodes:
+  - registration
+  - triage
+  servers:
+    registration: 2
+    triage: 2
+    fast_track: 2
+    consultation: 5
+    lab: 2
+    imaging: 2
+    treatment: 4
+  service:
+    registration:
+      mean: 5.0
+      cv: 0.5
+      dist: lognormal
+    triage:
+      mean: 8.0
+      cv: 0.5
+      dist: lognormal
+    fast_track:
+      mean: 20.0
+      cv: 0.6
+      dist: lognormal
+    consultation:
+      mean: 25.0
+      cv: 0.8
+      dist: lognormal
+    lab:
+      mean: 30.0
+      cv: 0.7
+      dist: lognormal
+    imaging:
+      mean: 25.0
+      cv: 0.7
+      dist: lognormal
+    treatment:
+      mean: 45.0
+      cv: 0.9
+      dist: lognormal
+  level_multiplier:
+    1: 1.5
+    2: 1.3
+    3: 1.0
+    4: 0.85
+    5: 0.7
+  revisit_multiplier: 0.5
+  pathways:
+    P1:
+    - registration
+    - triage
+    - fast_track
+    - sink
+    P2:
+    - registration
+    - triage
+    - consultation
+    - sink
+    P3:
+    - registration
+    - triage
+    - consultation
+    - lab
+    - consultation
+    - sink
+    P4:
+    - registration
+    - triage
+    - consultation
+    - imaging
+    - consultation
+    - sink
+    P5:
+    - registration
+    - triage
+    - consultation
+    - lab
+    - imaging
+    - treatment
+    - sink
+    P6:
+    - registration
+    - triage
+    - consultation
+    - treatment
+    - sink
+  class_mix:
+    level_probs:
+      1: 0.01
+      2: 0.06
+      3: 0.35
+      4: 0.38
+      5: 0.2
+    pathway_given_level:
+      1:
+        P5: 0.5
+        P6: 0.5
+      2:
+        P3: 0.2
+        P4: 0.2
+        P5: 0.3
+        P6: 0.3
+      3:
+        P2: 0.15
+        P3: 0.25
+        P4: 0.2
+        P5: 0.2
+        P6: 0.2
+      4:
+        P1: 0.45
+        P2: 0.25
+        P3: 0.15
+        P4: 0.15
+      5:
+        P1: 0.75
+        P2: 0.25
+katz:
+  kappa_default: 0.5
+  kappa_grid:
+  - 0.3
+  - 0.5
+  - 0.7
+  theta_abs:
+  - 0.01
+  - 0.05
+  - 0.1
+  - 0.25
+  - 0.5
+  - 1
+  - 2
+  - 5
+  theta_eta:
+  - 0.5
+  - 1
+  - 2
+  candidate_set:
+    kappa: 0.5
+    theta:
+    - 0.02
+    - 0.1
+    - 0.25
+one_hop:
+  kappa: 0.5
+  theta_h:
+  - 0.01
+  - 0.02
+  - 0.05
+  - 0.1
+  - 0.25
+  - 0.5
+  - 1
+  katz_reference:
+    kappa: 0.5
+    theta: 0.1
+verdict:
+  contested_min: 0.02
+  r_change_min: 0.05
+  r_change_max: 0.5
+  dominance_max: 1.0
+scenarios:
+  katz:
+    kappa: 0.5
+    theta: 0.1
+  one_hop:
+    kappa: 0.5
+    theta_h: 0.1
+  list:
+    A:
+      label: baseline
+    B:
+      label: high load
+      model:
+        target_utilisation: 0.95
+    C:
+      label: lab shock
+      shock:
+        node: lab
+        start_after_warmup_minutes: 2880
+        duration_minutes: 240
+        rate_multiplier: 0.5
+        window_minutes: 480
+    D:
+      label: blocking
+      model:
+        blocking: true
+        nodes:
+        - registration
+        - triage
+        - fast_track
+        - consultation
+        - lab
+        - imaging
+        - treatment
+        - admission
+        servers:
+          admission: 13
+        service:
+          admission:
+            mean: 240.0
+            cv: 0.8
+            dist: lognormal
+        pathways:
+          P5:
+          - registration
+          - triage
+          - consultation
+          - lab
+          - imaging
+          - treatment
+          - admission
+          - sink
+          P6:
+          - registration
+          - triage
+          - consultation
+          - treatment
+          - admission
+          - sink
+        capacity:
+          lab: 6
+          imaging: 6
+          treatment: 6
+          admission: 4
+resolved:
+  arrival_rate_per_min: 0.21291251800363203
+  arrivals_per_day: 306.59402592523014
+  analytic_utilisation:
+    registration: 0.482247
+    triage: 0.771595
+    fast_track: 0.533026
+    consultation: 0.85
+    lab: 0.806246
+    imaging: 0.625297
+    treatment: 0.483365
+  bottleneck: consultation
+  spectral_radius_A: 0.5861730940073503
+  alpha:
+    0.3: 0.5117942175562192
+    0.5: 0.8529903625936988
+    0.7: 1.1941865076311782
+  adjacency_A:
+    nodes:
+    - registration
+    - triage
+    - fast_track
+    - consultation
+    - lab
+    - imaging
+    - treatment
+    matrix:
+    - - 0.0
+      - 1.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.321
+      - 0.679
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.256029
+      - 0.142637
+      - 0.095434
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.627255
+      - 0.0
+      - 0.372745
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.599138
+      - 0.0
+      - 0.0
+      - 0.400862
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+  median_top2_bp_gap: 0.04
+  median_gap_note: ''
+  theta_scaled:
+    0.5: 0.02
+    1.0: 0.04
+    2.0: 0.08
+  theta_abs_evaluated:
+  - 0.01
+  - 0.05
+  - 0.1
+  - 0.25
+  - 0.5
+  - 1.0
+  - 2.0
+  - 5.0
+  - 0.02
+  candidate_set:
+    kappa: 0.5
+    theta:
+    - 0.02
+    - 0.1
+    - 0.25
+  fcfs_nodes:
+  - registration
+  - triage
+  policy_nodes:
+  - fast_track
+  - consultation
+  - lab
+  - imaging
+  - treatment
+  one_hop:
+    kappa: 0.5
+    theta_h:
+    - 0.01
+    - 0.02
+    - 0.05
+    - 0.1
+    - 0.25
+    - 0.5
+    - 1.0
+    katz_reference:
+      kappa: 0.5
+      theta: 0.1
+    matched_theta_h: 0.1
+    katz_dominance_ratio: 0.4937089872152575
+    matched_dominance_ratio_1h: 0.43717183414219474
+  scenarios:
+  - scenario: A
+    label: baseline
+    lambda_per_min: 0.21291251800363203
+    arrivals_per_day: 306.59402592523014
+    bottleneck: consultation
+    bottleneck_rho: 0.85
+    rho_A: 0.5861730940073503
+    alpha: 0.8529903625936988
+    blocking: false
+    shock: null
+    shock_window_minutes: null
+    analytic_utilisation:
+      registration: 0.4822
+      triage: 0.7716
+      fast_track: 0.533
+      consultation: 0.85
+      lab: 0.8062
+      imaging: 0.6253
+      treatment: 0.4834
+    achieved_utilisation:
+      registration: 0.483
+      triage: 0.7653
+      fast_track: 0.5361
+      consultation: 0.8537
+      lab: 0.7951
+      imaging: 0.6452
+      treatment: 0.4797
+    epochs_per_rep: 2275.2
+    blocking_events_per_rep: 0.0
+    policy_nodes:
+    - fast_track
+    - consultation
+    - lab
+    - imaging
+    - treatment
+  - scenario: B
+    label: high load
+    lambda_per_min: 0.2379610495334711
+    arrivals_per_day: 342.6639113281984
+    bottleneck: consultation
+    bottleneck_rho: 0.95
+    rho_A: 0.5861730940073503
+    alpha: 0.8529903625936988
+    blocking: false
+    shock: null
+    shock_window_minutes: null
+    analytic_utilisation:
+      registration: 0.539
+      triage: 0.8624
+      fast_track: 0.5957
+      consultation: 0.95
+      lab: 0.9011
+      imaging: 0.6989
+      treatment: 0.5402
+    achieved_utilisation:
+      registration: 0.5408
+      triage: 0.8566
+      fast_track: 0.5967
+      consultation: 0.9557
+      lab: 0.8885
+      imaging: 0.7215
+      treatment: 0.5514
+    epochs_per_rep: 3313.6
+    blocking_events_per_rep: 0.0
+    policy_nodes:
+    - fast_track
+    - consultation
+    - lab
+    - imaging
+    - treatment
+  - scenario: C
+    label: lab shock
+    lambda_per_min: 0.21291251800363203
+    arrivals_per_day: 306.59402592523014
+    bottleneck: consultation
+    bottleneck_rho: 0.85
+    rho_A: 0.5861730940073503
+    alpha: 0.8529903625936988
+    blocking: false
+    shock:
+      node: lab
+      start_after_warmup_minutes: 2880
+      duration_minutes: 240
+      rate_multiplier: 0.5
+      window_minutes: 480
+    shock_window_minutes:
+    - 4320.0
+    - 4800.0
+    analytic_utilisation:
+      registration: 0.4822
+      triage: 0.7716
+      fast_track: 0.533
+      consultation: 0.85
+      lab: 0.8062
+      imaging: 0.6253
+      treatment: 0.4834
+    achieved_utilisation:
+      registration: 0.483
+      triage: 0.7653
+      fast_track: 0.5361
+      consultation: 0.8537
+      lab: 0.8081
+      imaging: 0.6468
+      treatment: 0.4816
+    epochs_per_rep: 2291.0
+    blocking_events_per_rep: 0.0
+    policy_nodes:
+    - fast_track
+    - consultation
+    - lab
+    - imaging
+    - treatment
+  - scenario: D
+    label: blocking
+    lambda_per_min: 0.21291251800363203
+    arrivals_per_day: 306.59402592523014
+    bottleneck: consultation
+    bottleneck_rho: 0.85
+    rho_A: 0.5861730940073503
+    alpha: 0.8529903625936988
+    blocking: true
+    shock: null
+    shock_window_minutes: null
+    analytic_utilisation:
+      registration: 0.4822
+      triage: 0.7716
+      fast_track: 0.533
+      consultation: 0.85
+      lab: 0.8062
+      imaging: 0.6253
+      treatment: 0.4834
+      admission: 0.7932
+    achieved_utilisation:
+      registration: 0.483
+      triage: 0.7653
+      fast_track: 0.5361
+      consultation: 0.8962
+      lab: 0.7978
+      imaging: 0.6585
+      treatment: 0.5344
+      admission: 0.7681
+    epochs_per_rep: 2647.4
+    blocking_events_per_rep: 140.6
+    policy_nodes:
+    - fast_track
+    - consultation
+    - lab
+    - imaging
+    - treatment
+    - admission
+  seeds_used:
+  - 11001
+  - 22002
+  - 33003
+  - 44004
+  - 55005
+  class_mix:
+    L1-P5: 0.005
+    L1-P6: 0.005
+    L2-P3: 0.012
+    L2-P4: 0.012
+    L2-P5: 0.018
+    L2-P6: 0.018
+    L3-P2: 0.0525
+    L3-P3: 0.0875
+    L3-P4: 0.07
+    L3-P5: 0.07
+    L3-P6: 0.07
+    L4-P1: 0.171
+    L4-P2: 0.095
+    L4-P3: 0.057
+    L4-P4: 0.057
+    L5-P1: 0.15
+    L5-P2: 0.05
+  versions:
+    python: 3.14.3
+    numpy: 2.5.3
+    scipy: 1.18.1
+    pandas: 3.0.6
+    simpy: 4.1.2

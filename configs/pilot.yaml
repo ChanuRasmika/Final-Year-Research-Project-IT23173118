@@ -1,0 +1,121 @@
+# Decision-impact pilot: does the bounded Katz-centrality term change which
+# patient class is served, compared with plain backpressure?
+#
+# Time unit: minutes.
+# Every model number below is a placeholder for the pilot.
+# PROVISIONAL — replace after calibration
+
+experiment:
+  output_dir: results
+  replications: 5
+  seeds: [11001, 22002, 33003, 44004, 55005]  # one per replication, logged in results/
+  warmup_minutes: 1440        # 24 h, discarded
+  run_minutes: 10080          # 7 days observed after warm-up
+
+model:
+  blocking: false             # unbounded queues in the pilot; reserved for later
+  target_utilisation: 0.85    # bottleneck utilisation used to calibrate lambda
+
+  nodes: [registration, triage, fast_track, consultation, lab, imaging, treatment]
+  # Served FCFS (earliest arrival at the node): no PlainBP/KatzBP there and no decision epochs.
+  fcfs_nodes: [registration, triage]
+
+  # PROVISIONAL — replace after calibration
+  servers:
+    registration: 2
+    triage: 2
+    fast_track: 2
+    consultation: 5
+    lab: 2
+    imaging: 2
+    treatment: 4
+
+  # Lognormal service time per node (mean in minutes, coefficient of variation).
+  # Class-specific mean = node mean x level_multiplier[k] (x revisit_multiplier on a repeat visit).
+  # PROVISIONAL — replace after calibration
+  service:
+    registration: {mean: 5.0,  cv: 0.5, dist: lognormal}
+    triage:       {mean: 8.0,  cv: 0.5, dist: lognormal}
+    fast_track:   {mean: 20.0, cv: 0.6, dist: lognormal}
+    consultation: {mean: 25.0, cv: 0.8, dist: lognormal}
+    lab:          {mean: 30.0, cv: 0.7, dist: lognormal}
+    imaging:      {mean: 25.0, cv: 0.7, dist: lognormal}
+    treatment:    {mean: 45.0, cv: 0.9, dist: lognormal}
+
+  # PROVISIONAL — replace after calibration
+  level_multiplier: {1: 1.5, 2: 1.3, 3: 1.0, 4: 0.85, 5: 0.7}
+  revisit_multiplier: 0.5     # re-review consultation is shorter than the first one
+
+  # Deterministic pathways; every pathway ends in the virtual sink.
+  pathways:
+    P1: [registration, triage, fast_track, sink]
+    P2: [registration, triage, consultation, sink]
+    P3: [registration, triage, consultation, lab, consultation, sink]
+    P4: [registration, triage, consultation, imaging, consultation, sink]
+    P5: [registration, triage, consultation, lab, imaging, treatment, sink]
+    P6: [registration, triage, consultation, treatment, sink]
+
+  # Class mix: Pr(k, p) = level_probs[k] x pathway_given_level[k][p].
+  # PROVISIONAL — replace after calibration
+  class_mix:
+    level_probs: {1: 0.01, 2: 0.06, 3: 0.35, 4: 0.38, 5: 0.20}
+    pathway_given_level:
+      1: {P5: 0.5, P6: 0.5}
+      2: {P3: 0.2, P4: 0.2, P5: 0.3, P6: 0.3}
+      3: {P2: 0.15, P3: 0.25, P4: 0.20, P5: 0.20, P6: 0.20}
+      4: {P1: 0.45, P2: 0.25, P3: 0.15, P4: 0.15}
+      5: {P1: 0.75, P2: 0.25}
+
+katz:
+  kappa_default: 0.5
+  kappa_grid: [0.3, 0.5, 0.7]
+  theta_abs: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5]
+  theta_eta: [0.5, 1, 2]      # theta = eta x median top-2 BP pressure gap (rep 1, contested, post warm-up)
+  # Named candidate set; any theta missing from theta_abs is added to the absolute grid.
+  candidate_set: {kappa: 0.5, theta: [0.02, 0.1, 0.25]}
+
+# One-hop BP (1H-BP): h = q + alpha A^T q (first two Katz terms), same alpha = kappa / rho(A).
+one_hop:
+  kappa: 0.5
+  theta_h: [0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1]
+  katz_reference: {kappa: 0.5, theta: 0.1}   # KatzBP compared against 1H-BP; must be in the Katz grid
+
+verdict:
+  contested_min: 0.02         # below this overall contested share -> model lacks competition
+  r_change_min: 0.05          # below this for every theta -> bonus too weak
+  r_change_max: 0.50          # above this -> centrality overrides BP
+  dominance_max: 1.0          # active range needs dominance ratio below this
+
+# Scenario comparison: each scenario runs the same replications and seeds under PlainBP,
+# shadow-evaluating one KatzBP and one OneHopBP. Model overrides are deep-merged into
+# `model` (dicts merge key by key; lists are replaced whole).
+scenarios:
+  katz: {kappa: 0.5, theta: 0.1}
+  one_hop: {kappa: 0.5, theta_h: 0.1}        # matched theta_h
+  list:
+    A:
+      label: baseline
+    B:
+      label: high load
+      model: {target_utilisation: 0.95}
+    C:
+      label: lab shock
+      shock:
+        node: lab
+        start_after_warmup_minutes: 2880    # t0 = warm-up + 2 days
+        duration_minutes: 240               # 4 h at reduced rate
+        rate_multiplier: 0.5                # service rate x 0.5 (service times x 2)
+        window_minutes: 480                 # report window [t0, t0 + 8 h]: shock + recovery
+    D:
+      label: blocking
+      model:
+        blocking: true
+        nodes: [registration, triage, fast_track, consultation, lab, imaging, treatment, admission]
+        # PROVISIONAL — replace after calibration (13 beds keeps consultation the bottleneck at baseline lambda)
+        servers: {admission: 13}
+        service: {admission: {mean: 240.0, cv: 0.8, dist: lognormal}}   # PROVISIONAL
+        pathways:
+          P5: [registration, triage, consultation, lab, imaging, treatment, admission, sink]
+          P6: [registration, triage, consultation, treatment, admission, sink]
+        # Max patients waiting (excluding those in service). PROVISIONAL — replace after calibration
+        capacity: {lab: 6, imaging: 6, treatment: 6, admission: 4}
